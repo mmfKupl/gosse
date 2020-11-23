@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        .active-connections {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .connection {
+            width: 100%;
+        }
+
+        .messages {
+            display: flex;
+        }
+
+        p {
+            margin: 0 0.5rem 0 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="">
+        <button class="create-connection-btn">create connection</button>
+        <form id="message-form">
+            <h3>send message</h3>
+            <label>
+                client id
+                <input type="text" name="clientId">
+            </label>
+            <label>
+                message
+                <input type="text" name="message">
+            </label>
+            <button type="submit">send</button>
+        </form>
+    </div>
+    <div class="active-connections">
+
+    </div>
+</div>
+
+<script>
+
+    let clientId = 0
+    document.querySelector(".create-connection-btn").addEventListener("click", () => {
+        clientId++;
+        createConnection(clientId);
+    })
+
+    document.querySelector("#message-form").addEventListener('submit', e => sendMessage(e));
+
+    function sendMessage(e) {
+        e.preventDefault();
+        const clientId = e.target.clientId.value;
+        const message = e.target.message.value || 'default message';
+
+        fetch(`notify?message=${message}&clientId=${clientId}`);
+    }
+
+    function createConnection(clientId) {
+
+        document.querySelector('.active-connections').innerHTML += `
+<div class="connection" data-client-id="${clientId}">
+    <span>client id - ${clientId}</span>
+    <div class="messages">
+    </div>
+</div>`
+
+        const source = new EventSource(`/connect?clientId=${clientId}`);
+
+        source.onmessage = function (event) {
+            console.log(event);
+            document.querySelector(`.active-connections div[data-client-id="${clientId}"] .messages`)
+                .innerHTML += `
+<p>${event.data}</p>
+`
+        }
+        source.onerror = function (e) {
+            console.error(e);
+        }
+    }
+
+</script>
+</body>
+</html>

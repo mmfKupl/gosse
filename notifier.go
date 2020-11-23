@@ -35,6 +35,10 @@ type Notifier struct {
 	connectionIdentifier func(r *http.Request) (string, error)
 }
 
+func (n *Notifier) Init() {
+	n.clients = make(map[string]IClient)
+}
+
 func (n *Notifier) RegisterClient(id string, client IClient) error {
 	if n.clients[id] != nil {
 		return fmt.Errorf("client with id = `%s` already registred", id)
@@ -159,7 +163,11 @@ func (n *Notifier) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if !ok {
 			break
 		}
-		_, _ = fmt.Fprintf(w, "%s", message)
+		_, err = fmt.Fprintf(w, "data:%s\n\n", message)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error acured: %s", err), http.StatusGone)
+			break
+		}
 		flusher.Flush()
 	}
 
