@@ -49,7 +49,7 @@ func (n *Notifier) RegisterClient(id string, client IClient) error {
 		return fmt.Errorf("client with id = `%s` already registred", id)
 	}
 	n.clients[id] = client
-	n.OnClientRegistered(client)
+	go n.OnClientRegistered(client)
 	return nil
 }
 
