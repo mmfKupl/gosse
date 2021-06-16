@@ -41,6 +41,20 @@ type Notifier struct {
 	ExtraHeaders           map[string]string
 }
 
+func (n *Notifier) GetClients() map[string]IClient {
+	return n.clients
+}
+
+func (n *Notifier) GetClientsConnections() map[string]map[string]IConnection {
+	clientsConnections := make(map[string]map[string]IConnection)
+
+	for clientId, client := range n.clients {
+		clientsConnections[clientId] = client.(*Client).GetConnections()
+	}
+
+	return clientsConnections
+}
+
 func (n *Notifier) Init() {
 	n.clients = make(map[string]IClient)
 }

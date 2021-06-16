@@ -24,6 +24,10 @@ type Client struct {
 	onConnectionRegistered func(c IClient, conn IConnection)
 }
 
+func (c *Client) GetConnections() map[string]IConnection {
+	return c.connections
+}
+
 func (c *Client) GetId() string {
 	return c.id
 }
