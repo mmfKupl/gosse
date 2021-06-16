@@ -17,6 +17,9 @@ type INotifier interface {
 	IdentifyClient(r *http.Request) (string, error)
 	RegisterConnectionIdentifier(fn func(r *http.Request) (string, error))
 	IdentifyConnection(r *http.Request) (string, error)
+	RegisterOnClientRegistered(fn func(c IClient))
+	OnClientRegistered(c IClient)
+	RegisterOnConnectionRegistered(fn func(c IClient, conn IConnection))
 	ServeHTTP(w http.ResponseWriter, r *http.Request)
 }
 
@@ -30,9 +33,11 @@ func defaultConnectionIdentifier() string {
 
 // Notifier - структура, хранящая клиентов и имплементирующая работу с ними
 type Notifier struct {
-	clients              map[string]IClient
-	clientIdentifier     func(r *http.Request) (string, error)
-	connectionIdentifier func(r *http.Request) (string, error)
+	clients                map[string]IClient
+	clientIdentifier       func(r *http.Request) (string, error)
+	connectionIdentifier   func(r *http.Request) (string, error)
+	onClientRegistered     func(client IClient)
+	onConnectionRegistered func(c IClient, conn IConnection)
 }
 
 func (n *Notifier) Init() {
@@ -44,6 +49,7 @@ func (n *Notifier) RegisterClient(id string, client IClient) error {
 		return fmt.Errorf("client with id = `%s` already registred", id)
 	}
 	n.clients[id] = client
+	n.OnClientRegistered(client)
 	return nil
 }
 
@@ -92,7 +98,11 @@ func (n *Notifier) getIdentifiedClient(r *http.Request) (IClient, error) {
 	client := n.GetClient(clientId)
 
 	if client == nil {
-		client = &Client{connections: make(map[string]IConnection), id: clientId}
+		client = &Client{
+			connections: make(map[string]IConnection),
+			id: clientId,
+			onConnectionRegistered: n.onConnectionRegistered,
+		}
 		if err = n.RegisterClient(clientId, client); err != nil {
 			return nil, fmt.Errorf("Register client with id = `%s` failed: %s. ", clientId, err)
 		}
@@ -116,6 +126,24 @@ func (n *Notifier) getIdentifiedConnection(client IClient, r *http.Request) (ICo
 	}
 
 	return connection, nil
+}
+
+func (n *Notifier) RegisterOnClientRegistered(fn func(c IClient)) {
+	n.onClientRegistered = fn
+}
+
+func (n *Notifier) OnClientRegistered(client IClient) {
+	if n.onClientRegistered != nil {
+		n.onClientRegistered(client)
+	}
+}
+
+func (n *Notifier) RegisterOnConnectionRegistered(fn func(c IClient, conn IConnection)) {
+	n.onConnectionRegistered = fn
+
+	for _, client := range n.clients {
+		client.RegisterOnConnectionRegistered(n.onConnectionRegistered)
+	}
 }
 
 func setStreamingHeaders(w http.ResponseWriter) {

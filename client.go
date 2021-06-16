@@ -12,13 +12,16 @@ type IClient interface {
 	Notify(message Message)
 	GetId() string
 	GetConnection(id string) IConnection
+	RegisterOnConnectionRegistered(fn func(c IClient, conn IConnection))
+	OnConnectionRegistered(conn IConnection)
 }
 
 // Client - структура клиента, хранит све подключения,
 // имплементирует работу с подключениями
 type Client struct {
-	id          string
-	connections map[string]IConnection
+	id                     string
+	connections            map[string]IConnection
+	onConnectionRegistered func(c IClient, conn IConnection)
 }
 
 func (c *Client) GetId() string {
@@ -30,6 +33,7 @@ func (c *Client) RegisterConnection(id string, connection IConnection) error {
 		return fmt.Errorf("connection with id = `%s` already registred", id)
 	}
 	c.connections[id] = connection
+	c.OnConnectionRegistered(connection)
 	return nil
 }
 
@@ -60,4 +64,14 @@ func (c *Client) Notify(message Message) {
 
 func (c *Client) GetConnection(id string) IConnection {
 	return c.connections[id]
+}
+
+func (c *Client) RegisterOnConnectionRegistered(fn func(c IClient, conn IConnection)) {
+	c.onConnectionRegistered = fn
+}
+
+func (c *Client) OnConnectionRegistered(connection IConnection) {
+	if c.onConnectionRegistered != nil {
+		c.onConnectionRegistered(c, connection)
+	}
 }

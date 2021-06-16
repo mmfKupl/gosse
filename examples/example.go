@@ -35,7 +35,7 @@ func main() {
 	})
 
 	go func() {
-		for i := 0; i < 100; i++ {
+		for i := 0; ; i++ {
 			time.Sleep(1 * time.Second)
 			notifier.NotifyAll(gosse.Message(fmt.Sprintf("%v", i)))
 		}
@@ -86,6 +86,8 @@ func initNotifier() gosse.INotifier {
 	notifier := &gosse.Notifier{}
 	notifier.Init()
 	notifier.RegisterClientIdentifier(clientIdentifier)
+	notifier.RegisterOnClientRegistered(onClientRegister)
+	notifier.RegisterOnConnectionRegistered(onConnectionRegister)
 	return notifier
 }
 
@@ -95,4 +97,12 @@ func clientIdentifier(r *http.Request) (string, error) {
 		return "", fmt.Errorf("Can not get valid id. ")
 	}
 	return clientId, nil
+}
+
+func onClientRegister(client gosse.IClient) {
+	fmt.Printf("New Client Registered - id = %v\n", client.GetId())
+}
+
+func onConnectionRegister(client gosse.IClient, connection gosse.IConnection) {
+	fmt.Printf("New Connection Registered - id = %v, for client id = %v\n", connection.GetId(), client.GetId())
 }
