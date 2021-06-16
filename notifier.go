@@ -38,6 +38,7 @@ type Notifier struct {
 	connectionIdentifier   func(r *http.Request) (string, error)
 	onClientRegistered     func(client IClient)
 	onConnectionRegistered func(c IClient, conn IConnection)
+	ExtraHeaders           map[string]string
 }
 
 func (n *Notifier) Init() {
@@ -146,8 +147,14 @@ func (n *Notifier) RegisterOnConnectionRegistered(fn func(c IClient, conn IConne
 	}
 }
 
-func setStreamingHeaders(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "text/event-stream")
+func setStreamingHeaders(w http.ResponseWriter, extraHeaders map[string]string) {
+	if extraHeaders != nil {
+		for key, value := range extraHeaders {
+			w.Header().Set(key, value)
+		}
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -161,7 +168,7 @@ func (n *Notifier) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	setStreamingHeaders(w)
+	setStreamingHeaders(w, n.ExtraHeaders)
 
 	client, err := n.getIdentifiedClient(r)
 	if err != nil {
