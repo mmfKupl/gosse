@@ -33,7 +33,7 @@ func (c *Client) RegisterConnection(id string, connection IConnection) error {
 		return fmt.Errorf("connection with id = `%s` already registred", id)
 	}
 	c.connections[id] = connection
-	go c.OnConnectionRegistered(connection)
+	c.OnConnectionRegistered(connection)
 	return nil
 }
 
